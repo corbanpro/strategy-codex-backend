@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const summaries = require("./summaries.json");
+const versions = require("./versions.json");
 
 const folderName = "./backups";
 try {
@@ -16,18 +17,25 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-version = "1";
+let versionNum = Object.keys(versions).length + 1;
 const backupSummaries = () => {
-  fs.writeFile(`./backups/summaries(${version}).json`, JSON.stringify(summaries), (err) => {
+  fs.writeFile(`./backups/summaries(${versionNum}).json`, JSON.stringify(summaries), (err) => {
     if (err) {
       console.log(err);
     }
   });
-  console.log("summary backup complete - " + version + " - " + new Date());
-  version++;
+  versions[versionNum] = {
+    date: new Date().toLocaleString() + " MST",
+  };
+  fs.writeFile("./versions.json", JSON.stringify(versions), (err) => {
+    if (err) {
+      console.log(err);
+    }
+  });
+  versionNum++;
 };
 
-setInterval(backupSummaries, 1000 * 60 * 60);
+setInterval(backupSummaries, 1000 * 5);
 
 app.get("/test", (req, res) => {
   res.send({ message: "success" });
@@ -35,6 +43,10 @@ app.get("/test", (req, res) => {
 
 app.get("/getsummaries", (req, res) => {
   res.send(summaries);
+});
+
+app.get("/versions", (req, res) => {
+  res.send({ versions });
 });
 
 app.get("/getsummaries/:version_num", (req, res) => {
