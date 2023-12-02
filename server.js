@@ -39,20 +39,24 @@ setInterval(backupSummaries, 1000 * 60 * 60 * 6);
 
 app.get("/test", (req, res) => {
   res.send({ message: "success" });
+  console.log("test");
 });
 
 app.get("/getsummaries", (req, res) => {
   res.send(summaries);
+  console.log("getSummaries");
 });
 
 app.get("/versions", (req, res) => {
   res.send({ versions });
+  console.log("versions");
 });
 
 app.get("/getsummaries/:version_num", (req, res) => {
   const version = req.params.version_num;
   const summaries = require(`./backups/summaries(${version}).json`);
   res.send(summaries);
+  console.log("getSummaries/version");
 });
 
 app.post("/setsummaries", (req, res) => {
@@ -63,6 +67,7 @@ app.post("/setsummaries", (req, res) => {
     }
   });
   res.send("summaries updated");
+  console.log("setSummaries");
 });
 
 app.listen(8080, () => console.log("API is running on port 8080"));
