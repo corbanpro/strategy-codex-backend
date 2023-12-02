@@ -47,6 +47,7 @@ app.get("/test", (req, res) => {
 // get latest summaries
 app.get("/getsummaries", (req, res) => {
   res.send(summaries);
+  console.log(summaries);
   console.log("getSummaries");
 });
 
