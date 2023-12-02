@@ -21,7 +21,4 @@ app.post("/setsummaries", (req, res) => {
   res.send("summaries updated");
 });
 
-app.listen(8080, () => console.log("API is running on http://localhost:8080"));
-//https://www.youtube.com/watch?v=7CqJlxBYj-M
-
-// Path: client/src/App.js
+app.listen(8080, () => console.log("API is running on port 8080"));
