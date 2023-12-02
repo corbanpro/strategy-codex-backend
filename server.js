@@ -35,7 +35,7 @@ const backupSummaries = () => {
   versionNum++;
 };
 
-setInterval(backupSummaries, 1000 * 5);
+setInterval(backupSummaries, 1000 * 60 * 60 * 6);
 
 app.get("/test", (req, res) => {
   res.send({ message: "success" });
