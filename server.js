@@ -3,10 +3,39 @@ const cors = require("cors");
 const fs = require("fs");
 const summaries = require("./summaries.json");
 const versions = require("./versions.json");
+const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// if there is no database, create one
+const db = new sqlite3.Database("./database.db", (err) => {
+  if (err) {
+    console.error(err.message);
+  }
+});
+
+// create the tables if they don't exist
+db.serialize(() => {
+  db.run(
+    `CREATE TABLE IF NOT EXISTS "web_vitals" (
+      "id"	INTEGER NOT NULL UNIQUE,
+      "date"	TEXT NOT NULL,
+      "page"	TEXT NOT NULL,
+      "message"	TEXT NOT NULL,
+      PRIMARY KEY("id" AUTOINCREMENT)
+    );`
+  );
+  db.run(
+    `CREATE TABLE IF NOT EXISTS "users" (
+      "id"	INTEGER NOT NULL UNIQUE,
+      "username"	TEXT NOT NULL UNIQUE,
+      "password_hash"	TEXT NOT NULL,
+      PRIMARY KEY("id" AUTOINCREMENT)
+    );`
+  );
+});
 
 // if there is no backups folder, create one
 const folderName = "./backups";
@@ -79,8 +108,6 @@ app.post("/setsummaries", (req, res) => {
 
 //authenticate user
 const token = "asibukj4bt283y9827305ih3o8reu94hy57tuirjnb3geyrf78v7ygfruej3mn4rht";
-const username = "ilabz";
-const password = "password";
 
 app.post("/checktoken", (req, res) => {
   if (req.body.token === token) {
@@ -91,17 +118,50 @@ app.post("/checktoken", (req, res) => {
   console.log("checkToken");
 });
 
-app.post("/gettoken", (req, res) => {
-  if (req.body.username === username) {
-    if (req.body.password === password) {
-      res.send({ message: "success", token: token });
-    } else {
-      res.send({ message: "incorrect password", token: "" });
+app.post("/gettoken", async (req, res) => {
+  let usernameSql = `SELECT * FROM users WHERE username = ?`;
+  let usernameParams = [req.body.username];
+
+  db.get(usernameSql, usernameParams, (err, row) => {
+    console.log("1  rows");
+    console.log(row);
+    if (err) {
+      console.log(err);
     }
-  } else {
-    res.send({ message: "incorrect username", token: "" });
-  }
-  console.log("getToken");
+    if (row) {
+      username = row.username;
+      if (row.password_hash === req.body.password) {
+        res.send({ message: "success", token: token });
+      } else {
+        res.send({ message: "incorrect password", token: "" });
+      }
+    } else {
+      res.send({ message: "incorrect username", token: "" });
+    }
+  });
+});
+
+app.post("/reportwebusage", (req, res) => {
+  let sql = `INSERT INTO web_vitals (date, page, message) VALUES (?, ?, ?)`;
+  let params = [req.body.date, req.body.page, req.body.message];
+  db.run(sql, params, (err) => {
+    if (err) {
+      console.log(err);
+      res.send("error");
+    } else {
+      res.send("success");
+    }
+  });
+});
+
+app.get("/getwebusage", (req, res) => {
+  let sql = `SELECT * FROM web_vitals`;
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.log(err);
+    }
+    res.send(JSON.stringify(rows));
+  });
 });
 
 app.listen(8080, () => console.log("API is running on port 8080"));
