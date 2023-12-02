@@ -27,7 +27,7 @@ const backupSummaries = () => {
     }
   });
   versions[versionNum] = {
-    date: new Date().toLocaleString() + " MST",
+    date: new Date().toUTCString(),
   };
   fs.writeFile("./versions.json", JSON.stringify(versions), (err) => {
     if (err) {
