@@ -37,9 +37,9 @@ db.serialize(() => {
     );`
   );
   db.run(`DELETE FROM "web_vitals" WHERE "message" = "[object Object]";`);
-  // db.run(
-  //   `INSERT INTO "users" ("username", "password_hash") VALUES ("ilabz", "${sha256("password")}")`
-  // );
+  db.run(
+    `INSERT INTO "users" ("username", "password_hash") VALUES ("ilabz", "${sha256("password")}")`
+  );
 });
 
 db.a;
