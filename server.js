@@ -4,6 +4,7 @@ const fs = require("fs");
 const summaries = require("./summaries.json");
 const versions = require("./versions.json");
 const sqlite3 = require("sqlite3").verbose();
+const sha256 = require("js-sha256").sha256;
 
 const app = express();
 app.use(express.json());
@@ -35,7 +36,13 @@ db.serialize(() => {
       PRIMARY KEY("id" AUTOINCREMENT)
     );`
   );
+  db.run(`DELETE FROM "web_vitals" WHERE "message" = "[object Object]";`);
+  // db.run(
+  //   `INSERT INTO "users" ("username", "password_hash") VALUES ("ilabz", "${sha256("password")}")`
+  // );
 });
+
+db.a;
 
 // if there is no backups folder, create one
 const folderName = "./backups";
@@ -74,6 +81,11 @@ app.get("/test", (req, res) => {
   console.log("test");
 });
 
+app.get("/info", (req, res) => {
+  res.send({ message: "success" });
+  console.log("info");
+});
+
 // get latest summaries
 app.get("/getsummaries", (req, res) => {
   res.send(summaries);
@@ -91,7 +103,7 @@ app.get("/getsummaries/:version_num", (req, res) => {
   const version = req.params.version_num;
   const summaries = require(`./backups/summaries(${version}).json`);
   res.send(summaries);
-  console.log("getSummaries/version");
+  console.log(`getSummaries/version_${version}`);
 });
 
 // set summaries
@@ -123,22 +135,22 @@ app.post("/gettoken", async (req, res) => {
   let usernameParams = [req.body.username];
 
   db.get(usernameSql, usernameParams, (err, row) => {
-    console.log("1  rows");
-    console.log(row);
     if (err) {
       console.log(err);
     }
     if (row) {
       username = row.username;
-      if (row.password_hash === req.body.password) {
+      if (row.password_hash === sha256(req.body.password)) {
         res.send({ message: "success", token: token });
+        console.log();
       } else {
-        res.send({ message: "incorrect password", token: "" });
+        res.send({ message: "Incorrect Password", token: "" });
       }
     } else {
-      res.send({ message: "incorrect username", token: "" });
+      res.send({ message: "Incorrect Username", token: "" });
     }
   });
+  console.log("getToken");
 });
 
 app.post("/reportwebusage", (req, res) => {
@@ -152,6 +164,7 @@ app.post("/reportwebusage", (req, res) => {
       res.send("success");
     }
   });
+  console.log("reportWebUsage");
 });
 
 app.get("/getwebusage", (req, res) => {
@@ -160,8 +173,9 @@ app.get("/getwebusage", (req, res) => {
     if (err) {
       console.log(err);
     }
-    res.send(JSON.stringify(rows));
+    res.send(rows);
   });
+  console.log("getWebUsage");
 });
 
 app.listen(8080, () => console.log("API is running on port 8080"));
