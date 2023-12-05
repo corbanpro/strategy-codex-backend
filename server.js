@@ -5,6 +5,8 @@ const summaries = require("./summaries.json");
 const versions = require("./versions.json");
 const sqlite3 = require("sqlite3").verbose();
 const sha256 = require("js-sha256").sha256;
+var http = require("http");
+var https = require("https");
 
 const app = express();
 app.use(express.json());
@@ -178,4 +180,16 @@ app.get("/getwebusage", (req, res) => {
   console.log("getWebUsage");
 });
 
-app.listen(8080, () => console.log("API is running on port 8080"));
+http.createServer(app).listen(80, () => console.log("API is running on port 80"));
+// app.listen(443, () => console.log("API is running on port 8080"));
+https
+  .createServer(
+    {
+      key: fs.readFileSync("server.key"),
+      cert: fs.readFileSync("server.cert"),
+    },
+    app
+  )
+  .listen(443, function () {
+    console.log("Example app listening on port 3000! Go to https://localhost:443/");
+  });
