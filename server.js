@@ -78,14 +78,9 @@ backupSummaries();
 setInterval(backupSummaries, 1000 * 60 * 60 * 6);
 
 // test endpoint
-app.get("/test", (req, res) => {
+app.get("/", (req, res) => {
   res.send({ message: "success" });
   console.log("test");
-});
-
-app.get("/info", (req, res) => {
-  res.send({ message: "success" });
-  console.log("info");
 });
 
 // get latest summaries
