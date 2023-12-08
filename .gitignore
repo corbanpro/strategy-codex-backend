@@ -1,4 +1,4 @@
 /node_modules
 /backups
-versions.json
-database.db
+*.json
+*.txt
