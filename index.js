@@ -1,50 +1,15 @@
-const express = require("express");
 const cors = require("cors");
+const express = require("express");
 const fs = require("fs");
+const sha256 = require("js-sha256").sha256;
+const mysql = require("mysql");
 const summaries = require("./summaries.json");
 const versions = require("./versions.json");
-const sqlite3 = require("sqlite3").verbose();
-const sha256 = require("js-sha256").sha256;
-var http = require("http");
-var https = require("https");
-
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// if there is no database, create one
-const db = new sqlite3.Database("./database.db", (err) => {
-  if (err) {
-    console.error(err.message);
-  }
-});
-
-// create the tables if they don't exist
-db.serialize(() => {
-  db.run(
-    `CREATE TABLE IF NOT EXISTS "web_vitals" (
-      "id"	INTEGER NOT NULL UNIQUE,
-      "date"	TEXT NOT NULL,
-      "page"	TEXT NOT NULL,
-      "message"	TEXT NOT NULL,
-      PRIMARY KEY("id" AUTOINCREMENT)
-    );`
-  );
-  db.run(
-    `CREATE TABLE IF NOT EXISTS "users" (
-      "id"	INTEGER NOT NULL UNIQUE,
-      "username"	TEXT NOT NULL UNIQUE,
-      "password_hash"	TEXT NOT NULL,
-      PRIMARY KEY("id" AUTOINCREMENT)
-    );`
-  );
-  db.run(`DELETE FROM "web_vitals" WHERE "message" = "[object Object]";`);
-  // db.run(
-  //   `INSERT INTO "users" ("username", "password_hash") VALUES ("ilabz", "${sha256("password")}")`
-  // );
-});
-
-db.a;
+let messages = [];
 
 // if there is no backups folder, create one
 const folderName = "./backups";
@@ -77,10 +42,68 @@ const backupSummaries = () => {
 backupSummaries();
 setInterval(backupSummaries, 1000 * 60 * 60 * 6);
 
+// build database
+var connection = mysql.createConnection({
+  host: process.env.RDS_HOSTNAME,
+  user: process.env.RDS_USERNAME,
+  password: process.env.RDS_PASSWORD,
+  port: process.env.RDS_PORT,
+});
+
+connection.connect(function (err) {
+  if (err) {
+    console.error("Database connection failed: " + err.stack);
+    return;
+  }
+  messages.push("Connected to database.");
+});
+
+connection.query("CREATE DATABASE IF NOT EXISTS strategy_unlocked", function (err, result) {
+  if (err) throw err;
+  messages.push("Database created");
+});
+
+connection.query("USE strategy_unlocked", function (err, result) {
+  if (err) throw err;
+  messages.push("Using database");
+});
+
+let createWebVitals = `create table if not exists web_vitals(
+  id int primary key auto_increment,
+  date varchar(255)not null,
+  page varchar(255)not null,
+  message varchar(255)not null
+)`;
+connection.query(createWebVitals, function (err, result) {
+  if (err) throw err;
+  messages.push("web_vitals table created");
+});
+
+let createUsers = `create table if not exists users(
+  id int primary key auto_increment,
+  username varchar(255)not null unique,
+  password varchar(255)not null
+)`;
+connection.query(createUsers, function (err, result) {
+  if (err) throw err;
+  messages.push("users table created");
+});
+
+let insertUsers = `insert ignore into users(username,password) values('ilabz','password')`;
+connection.query(insertUsers, function (err, result) {
+  if (err) throw err;
+  messages.push("users data inserted");
+});
+
 // test endpoint
 app.get("/", (req, res) => {
   res.send({ message: "success" });
   console.log("test");
+});
+
+// console log
+app.get("/messages", (req, res) => {
+  res.send("messages: " + messages);
 });
 
 // get latest summaries
@@ -131,15 +154,11 @@ app.post("/gettoken", async (req, res) => {
   let usernameSql = `SELECT * FROM users WHERE username = ?`;
   let usernameParams = [req.body.username];
 
-  db.get(usernameSql, usernameParams, (err, row) => {
-    if (err) {
-      console.log(err);
-    }
-    if (row) {
-      username = row.username;
-      if (row.password_hash === sha256(req.body.password)) {
+  connection.query(usernameSql, usernameParams, function (err, result) {
+    if (err) throw err;
+    if (result.length > 0) {
+      if (result[0].password === req.body.password) {
         res.send({ message: "success", token: token });
-        console.log();
       } else {
         res.send({ message: "Incorrect Password", token: "" });
       }
@@ -153,38 +172,19 @@ app.post("/gettoken", async (req, res) => {
 app.post("/reportwebusage", (req, res) => {
   let sql = `INSERT INTO web_vitals (date, page, message) VALUES (?, ?, ?)`;
   let params = [req.body.date, req.body.page, req.body.message];
-  db.run(sql, params, (err) => {
-    if (err) {
-      console.log(err);
-      res.send("error");
-    } else {
-      res.send("success");
-    }
+  connection.query(sql, params, function (err, result) {
+    if (err) throw err;
   });
   console.log("reportWebUsage");
 });
 
 app.get("/getwebusage", (req, res) => {
   let sql = `SELECT * FROM web_vitals`;
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.log(err);
-    }
-    res.send(rows);
+  connection.query(sql, function (err, result) {
+    if (err) throw err;
+    res.send(result);
   });
   console.log("getWebUsage");
 });
 
-http.createServer(app).listen(80, () => console.log("API is running on port 80"));
-// app.listen(443, () => console.log("API is running on port 8080"));
-https
-  .createServer(
-    {
-      key: fs.readFileSync("server.key"),
-      cert: fs.readFileSync("server.cert"),
-    },
-    app
-  )
-  .listen(443, function () {
-    console.log("API is running on port 443");
-  });
+app.listen(8080, () => console.log("API is running on port 8080"));

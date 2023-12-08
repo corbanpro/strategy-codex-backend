@@ -1,12 +1,12 @@
 {
-  "name": "strategy-codex-backend",
+  "name": "test_env",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "test.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -14,6 +14,6 @@
     "express": "^4.18.2",
     "fs": "^0.0.1-security",
     "js-sha256": "^0.10.1",
-    "sqlite3": "^5.1.6"
+    "mysql": "^2.18.1"
   }
 }
